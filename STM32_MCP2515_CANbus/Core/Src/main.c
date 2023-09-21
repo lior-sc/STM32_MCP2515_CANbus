@@ -21,6 +21,7 @@
 #include "spi.h"
 #include "usart.h"
 #include "gpio.h"
+#include "MCP2515.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
