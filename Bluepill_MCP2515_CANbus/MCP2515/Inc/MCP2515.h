@@ -12,9 +12,9 @@
 #include "spi.h"
 #include "REGS2515.h"
 
-HAL_StatusTypeDef MCP2515_init();
+HAL_StatusTypeDef MCP2515_init(SPI_HandleTypeDef *, GPIO_TypeDef *, uint16_t);
 HAL_StatusTypeDef MCP2515_reset();
-
+HAL_StatusTypeDef MCP2515_read(uint8_t, uint16_t, uint8_t *);
 
 
 
