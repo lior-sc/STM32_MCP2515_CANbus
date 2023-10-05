@@ -106,12 +106,18 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  get_MCP2515_CANSTAT_data2();
+		uint8_t read_status = 0x00;
+		uint8_t rx_status = 0x00;
 
-	  HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
-	  HAL_Delay(1000);
-	  HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
-	  HAL_Delay(1000);
+		MCP2515_get_read_status(&read_status);
+		MCP2515_get_rx_status(&rx_status);
+		get_MCP2515_CANSTAT_data1();
+		get_MCP2515_CANSTAT_data2();
+
+		HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
+		HAL_Delay(200);
+		HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
+		HAL_Delay(1000);
 
   }
   /* USER CODE END 3 */

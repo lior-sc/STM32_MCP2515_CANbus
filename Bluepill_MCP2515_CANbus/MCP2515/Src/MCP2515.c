@@ -13,7 +13,6 @@ static SPI_HandleTypeDef *hspi;
 static GPIO_TypeDef *CS_GPIO_Port;
 static uint16_t CS_Pin;
 
-
 HAL_StatusTypeDef MCP2515_init(SPI_HandleTypeDef *spi_handle, GPIO_TypeDef *MCP2515_CS_GPIO_Port, uint16_t MCP2515_CS_PIN)
 {
 	// set pointer to SPI and CS pin handles
@@ -65,3 +64,60 @@ HAL_StatusTypeDef MCP2515_read(uint8_t address, uint16_t size, uint8_t rx_buf[])
 
 	return ret;
 }
+
+/**
+ * @brief	The READ STATUS instruction allows single instruction access to some of the often used status bits for
+ * message reception and transmission. The MCP2515 is selected by lowering the CS pin and the READ STATUS command
+ * byte, shown in Figure 12-8, is sent to the MCP2515. Once the command byte is sent,the MCP2515 will return eight
+ * bits of data that contain the status.
+ *
+ * @param	*buf: the value will be retured to this pointer. the pointer should be to a uint8_t type variable
+ */
+HAL_StatusTypeDef MCP2515_get_read_status(uint8_t * buf)
+{
+	uint8_t tx_buf[2] = {0x00};
+	uint8_t rx_buf[2] = {0x00};
+
+	tx_buf[0] = MCP2515_CAN_READ_STATUS;
+
+	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);
+	HAL_StatusTypeDef ret = HAL_SPI_TransmitReceive(hspi, tx_buf, rx_buf, 2, 100);
+	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);
+
+	if(ret == HAL_OK)
+	{
+		*buf = rx_buf[1];
+	}
+
+	return ret;
+}
+
+/**
+ * @brief 	The RX STATUS instruction is used to quickly determine which filter matched the message
+ * and message type (standard, extended, remote). After the command byte is sent, the controller will
+ * return 8 bits of data that contain the status data. If more clocksare sent after the eight bits
+ * are transmitted, the controller will continue to output the same status bits as long as the CS pin
+ * stays low and clocks are provided.
+ *
+ * @param	*buf: the value will be returned to this pointer. the pointer should be to a
+ * 				  uint8_t type variable
+ */
+HAL_StatusTypeDef MCP2515_get_rx_status(uint8_t * buf)
+{
+	uint8_t tx_buf[2] = {0x00};
+	uint8_t rx_buf[2] = {0x00};
+
+	tx_buf[0] = MCP2515_CAN_RX_STATUS;
+
+	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);
+	HAL_StatusTypeDef ret = HAL_SPI_TransmitReceive(hspi, tx_buf, rx_buf, 2, 100);
+	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);
+
+	if(ret == HAL_OK)
+	{
+		*buf = rx_buf[1];
+	}
+
+	return ret;
+}
+
