@@ -24,6 +24,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "MCP2515.h"
+#include "stdbool.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,10 +50,11 @@
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-void get_MCP2515_CANSTAT_data1();
-void get_MCP2515_CANSTAT_data2();
-/* USER CODE BEGIN PFP */
 
+/* USER CODE BEGIN PFP */
+void get_CANSTAT_data();
+void MCP2515_set_CNF_reg();
+void MCP2515_get_CNF_reg();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -96,8 +98,8 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-  MCP2515_init(&hspi2, CAN_CS_GPIO_Port, CAN_CS_Pin);
-  HAL_Delay(1000);
+	MCP2515_init(&hspi2, GPIOA, GPIO_PIN_8);
+	HAL_Delay(1000);
 
 	while (1)
 	{
@@ -106,16 +108,17 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		uint8_t read_status = 0x00;
-		uint8_t rx_status = 0x00;
 
-		MCP2515_get_read_status(&read_status);
-		MCP2515_get_rx_status(&rx_status);
-		get_MCP2515_CANSTAT_data1();
-		get_MCP2515_CANSTAT_data2();
+//		MCP2515_get_read_status(&read_status);
+//		MCP2515_get_rx_status(&rx_status);
+		get_CANSTAT_data();
+		get_MCP2515_canstat_data();
+		MCP2515_set_config_mode();
+		MCP2515_set_normal_mode();
+
 
 		HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
-		HAL_Delay(200);
+		HAL_Delay(50);
 		HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
 		HAL_Delay(1000);
 
@@ -164,20 +167,49 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
-void get_MCP2515_CANSTAT_data1()
+HAL_StatusTypeDef MCP2515_write_registers(uint8_t address, uint16_t length, uint8_t bytes[])
 {
-	  uint8_t bytes[10] = {0x00};
-	  bytes[0] = MCP2515_CAN_READ;
-	  bytes[1] = MCP2515_CANSTAT;
-	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
-	  HAL_SPI_Transmit(&hspi2, bytes, 2, 100);
-	  bytes[0] = 0x00;
-	  bytes[1] = 0x00;
-	  HAL_SPI_Receive(&hspi2, bytes, 1, HAL_MAX_DELAY);
-	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
+	HAL_StatusTypeDef ret;
+	uint8_t tx_buf[20];
+
+	tx_buf[0] = MCP2515_CAN_WRITE;
+	tx_buf[1] = address;
+
+	for(int i=0; i<(int)length; i++)
+	{
+		tx_buf[2+i] = bytes[i];
+	}
+
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
+	ret = HAL_SPI_Transmit(&hspi2, tx_buf, length+2, HAL_MAX_DELAY);
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
+
+	return ret;
 }
 
-void get_MCP2515_CANSTAT_data2()
+HAL_StatusTypeDef MCP2515_read_registers(uint8_t address, uint16_t length, uint8_t buf[])
+{
+	HAL_StatusTypeDef ret;
+	uint8_t tx_buf[20] = {0x00};
+	uint8_t rx_buf[20] = {0x00};
+
+	tx_buf[0] = MCP2515_CAN_READ;
+	tx_buf[1] = address;
+
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
+	ret = HAL_SPI_TransmitReceive(&hspi2, tx_buf, rx_buf, length+2, HAL_MAX_DELAY);
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
+
+	for(int i=0;i<length;i++)
+	{
+		buf[i] = rx_buf[i+2];
+	}
+
+	return ret;
+}
+
+
+void get_CANSTAT_data()
 {
 	  uint8_t tx_buf[10] = {0x00};
 	  uint8_t rx_buf[10] = {0x00};
@@ -191,6 +223,27 @@ void get_MCP2515_CANSTAT_data2()
 
 	  return;
 }
+
+void MCP2515_get_CNF_reg()
+{
+	uint8_t buf[3] = {0x00};
+	MCP2515_read_registers(MCP2515_CNF3, 3, buf);
+
+	return;
+}
+
+void MCP2515_set_CNF_reg()
+{
+	uint8_t bytes[3] = {0x00};
+	bytes[0] = 1;
+	bytes[1] = 2;
+	bytes[2] = 3;
+
+	MCP2515_write_registers(MCP2515_CNF3, 3, bytes);
+
+	return;
+}
+
 
 
 /* USER CODE END 4 */
